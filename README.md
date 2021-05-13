@@ -11,5 +11,5 @@ st7789_res = 12<br>
 st7789_dc  = 13<br>
 uart-tx    = 0<br>
 uart-rx    = 1<br>
-<img src="images/GPSwatchPico.jpg" width=300><br>
+<img src="images/GPSwatchPico.jpg" width=400><br>
 
