@@ -108,7 +108,7 @@ def covrpt(yh, ov, n):
 def carryover(yy_hh, ov=[99,12,31,23,59,59]):
     feb = 29 if yy_hh[0]%4==0 else 28
     ov[2] = 30 if yy_hh[1] in [4,6,9,11] else feb if yy_hh[1]==2 else 31
-    covrpt(yy_hh, ov, len(yy_hh)-2)
+    covrpt(yy_hh, ov, 3)
     yy_hh[6] = week(yy_hh, feb) if yy_hh[6]==0 else 0
     return yy_hh
 def week(yy, feb):
