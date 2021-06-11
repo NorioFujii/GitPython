@@ -136,11 +136,14 @@ class ST7789():
         self._rotation = rotation % 4
         self.xstart = xstart
         self.ystart = ystart
+        self.wkpos = [0, 0]
+        self.wksiz = [0, 0]
+        self.save_box = [[0 for i in range(100)] for j in range(33)]
         
         self.hard_reset()
         self.soft_reset()
         self.sleep_mode(False)
-        self.dc.on()
+        self.dc.on() 
 
         self._set_color_mode(COLOR_MODE_65K|COLOR_MODE_16BIT)
         time.sleep_ms(50)
@@ -350,7 +353,17 @@ class ST7789():
         self.set_window(x, y, x, y)
         self.write(None, _encode_pixel(color))
 
-    def blit_buffer(self, buffer, x, y, width, height, k64=False):
+    def save_buffer(self, buffer, x, yc, width, height):
+        if self.wkpos[0]==0:
+            return 
+#        print('x=%d, yc=%d' % (x, yc))
+        for yy in range(height):
+            for i in range(width):
+                self.save_box[yc*height+yy][x+i] =  \
+                     int((buffer[(yy*width+i)*2] & 0xff) <<8 | \
+                         (buffer[(yy*width+i)*2+1]) & 0xff)
+            
+    def blit_buffer(self, buffer, x, y, width, height):
         """
         Copy buffer to display at the given location.
 
@@ -452,48 +465,60 @@ class ST7789():
             return
         steep1 = abs(sin+ddy) > abs(cos+ddx)
         steep2 = abs(sin-ddy) > abs(cos-ddx)
-        if steep1:
-            x0, y0 = y1+sin+ddy, x1+cos+ddx
-            x3, y3 = y1, x1
-        else:
-            x0, y0 = x1+cos+ddx, y1+sin+ddy
-            x3, y3 = x1, y1
-        self._line_sl( x0, y0, x3, y3, colors, steep1)
+        x0, y0 = x1+cos+ddx, y1+sin+ddy
+        self._line_sl( x0, y0, x1, y1, colors, steep1)
         if ddx==ddy==0:
             return
-        if steep2:
-            x0, y0 = y1+sin-ddy, x1+cos-ddx
-            x3, y3 = y1, x1
-        else:
-            x0, y0 = x1+cos-ddx, y1+sin-ddy
-            x3, y3 = x1, y1
-        self._line_sl( x0, y0, x3, y3, colors, steep2)
+        x0, y0 = x1+cos-ddx, y1+sin-ddy
+        self._line_sl( x0, y0, x1, y1, colors, steep2)
 
     def _line_sl(self, x0, y0, x1, y1, colors, steep):
-        if x0 > x1:
-            x0, x1 = x1, x0
-            y0, y1 = y1, y0
-        dx = x1 - x0
-        dy = abs(y1 - y0)
+        xp = [0, 0]
+        xs = [0, 0]
+        if steep:
+            x2, y2 = y0, x0
+            x3, y3 = y1, x1
+            xp[0],xp[1] = self.wkpos[1], self.wkpos[0]
+            xs[0],xs[1] = self.wksiz[1], self.wksiz[0]
+        else:
+            x2, y2 = x0, y0
+            x3, y3 = x1, y1
+            xp[0],xp[1] = self.wkpos[0], self.wkpos[1]
+            xs[0],xs[1] = self.wksiz[0], self.wksiz[1]
+        if x2 > x3:
+            x2, x3 = x3, x2
+            y2, y3 = y3, y2
+        dx = x3 - x2
+        dy = abs(y3 - y2)
         err = dx // 2
-        ystep = 1 if y0 < y1 else -1
-        for x2 in range(x0, x1+1):
-           if type(colors) is not list:
-              if steep:
-                 colors.seek(54+((self.height-x2-1)*self.width+y0)*3)
-              else:
-                 colors.seek(54+((self.height-y0-1)*self.width+x2)*3)
-              bgr = colors.read(3)
-              color = color565((bgr[2],bgr[1],bgr[0]))
-           else:
-              color = colors[x2 - x0]
-           if steep:
-              self.pixel(y0, x2, color)
-           else:
-              self.pixel(x2, y0, color)
-           err -= dy
-           if err < 0:
-                y0 += ystep
+        ystep = 1 if y2 < y3 else -1
+        for x4 in range(x2, x3+1):
+          if type(colors) is list:
+              color = colors[x4 - x2] 
+          else:
+            color = None
+            if self.wkpos[0]>0:
+                if xp[0]<= x4 <= xp[0]+xs[0] and xp[1]<= y2 <= xp[1]+xs[1]:
+                   if steep:
+                       color = self.save_box[x4-xp[0]][(y2-xp[1])]
+#                       print('Save_box %d, %d color:%s.' % (y2, x4, color))
+                   else:
+                       color = self.save_box[y2-xp[1]][(x4-xp[0])] 
+#                       print('Save_box %d, %d color:%s.' % (x4, y2, color))
+            if color==None:
+                if steep:
+                    colors.seek(54+((self.height-x4-1)*self.width+y2)*3)
+                else:
+                    colors.seek(54+((self.height-y2-1)*self.width+x4)*3)
+                bgr = colors.read(3)
+                color = color565((bgr[2],bgr[1],bgr[0]))
+          if steep:
+              self.pixel(y2, x4, color)
+          else:
+              self.pixel(x4, y2, color)
+          err -= dy
+          if err < 0:
+                y2 += ystep
                 err += dx
 
     def vscrdef(self, tfa, vsa, bfa):
@@ -546,6 +571,9 @@ class ST7789():
             color (int): 565 encoded color to use for characters
             background (int): 565 encoded color to use for background
         """
+        if x0>50 and y0<200:
+            self.wkpos = (x0, y0)
+            self.wksiz = (len(text)*8, font.HEIGHT)
         for char in text:
             ch = ord(char)
             if (font.FIRST <= ch < font.LAST
@@ -630,8 +658,10 @@ class ST7789():
                         color if font.FONT[idx+7] & _BIT0 else background
                     )
                     self.blit_buffer(buffer, x0, y0+8*line, 8, 8)
+                    if x0>50 and y0<200:
+                        self.save_buffer(buffer, x0-self.wkpos[0], line, 8, 8)
 
-                x0 += 8
+                x0 += font.WIDTH
 
     def _text16(self, font, text, x0, y0, color=WHITE, background=BLACK):
         """
@@ -646,6 +676,10 @@ class ST7789():
             color (int): 565 encoded color to use for characters
             background (int): 565 encoded color to use for background
         """
+        if x0>50:
+            self.wkpos = (x0, y0)
+            self.wksiz = (len(text)*16, font.HEIGHT)
+            
         for char in text:
             ch = ord(char)
             if (font.FIRST <= ch < font.LAST
@@ -794,6 +828,8 @@ class ST7789():
                         color if font.FONT[idx+15] & _BIT0 else background
                     )
                     self.blit_buffer(buffer, x0, y0+8*line, 16, 8)
+                    if x0>50:
+                        self.save_buffer(buffer, x0-self.wkpos[0], line, 16, 8)
             x0 += font.WIDTH
 
     def text(self, font, text, x0, y0, color=WHITE, background=BLACK):
