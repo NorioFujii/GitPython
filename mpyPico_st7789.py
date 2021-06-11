@@ -27,6 +27,11 @@ dbl_pi = math.pi * 2
 doller = b'$'
 col_base = [st7789.color565(0,0,255)] * 101
 Watch_face = "Screenshot_clock4.bmp"
+wkfont = font2
+wkpos = (74, 50)
+#Watch_face = "Screenshot_clock3.bmp"
+#wkfont = font1
+#wkpos = (173,110)
 
 print(uos.uname())
 spi1 = SPI(1, baudrate=62500000, polarity=1)
@@ -42,7 +47,7 @@ disp.text(font2, "RPi Pico", 10, 40)  #  or Micro:bit
 disp.text(font2, "MicroPython", 10, 70)
 disp.text(font1, "ST7789 SPI 240*240 IPS", 10, 110)
 disp.text(font1, "https://github.com/", 10, 130)
-disp.text(font1, "russhughes/st7789py_mpy", 10, 150)
+disp.text(font1, "NorioFujii/GitPython/", 10, 150)
 
 for _ in range(2000):
     disp.pixel(random.randint(0, disp_width),
@@ -135,6 +140,7 @@ def bitmap_thread():
 dline = 214  # 日付時刻表示行の位置            
 sec = min = hor = 75
 omn = 0
+newd = True
 if Watch_face in uos.listdir("/fonts"):
     bitmap_thread()
 else:    
@@ -170,25 +176,23 @@ while True:
             UTC,Ua,Vert,VertM,Hori,HoriM,V,R,ddmmyy = \
                    rxData[7:].split(',')[0:9]
             if UTC=="" or len(ddmmyy)!=6:
-                disp.text(font1, "Catching satellite...", 24, dline)
+                disp.text(font1, "Tracking satellite...", 24, dline)
                 print("衛星捕捉中・・・")
                 rxData = doller
                 continue
             if dt2==[]:
                 print("衛星を捕捉しました")
             old = sec if sec>0 else 0
-            wday = 0 if old==75 or old==59 else 8
+            wday = 0 if newd else 8
             dt2 = carryover([int(ddmmyy[4:6]),int(ddmmyy[2:4]),int(ddmmyy[0:2]), \
                             int(UTC[0:2]) + 9,int(UTC[2:4]),int(UTC[4:6]),wday]) # +9-hours shift
+            newd = False
             text1 = "20{:02d}.{:02d}.{:02d} {:02d}:{:02d}:{:02d}  "
             text2 = "N:{}°{}’ E:{}°{}’"
             ptext = text1.format(*dt2) + \
                         text2.format(Vert[0:2],Vert[2:4],Hori[0:3],Hori[3:5])
             print(ptext)
             sec = 75-dt2[5]
-            if old==75 or old==59:
-                disp.text(font1, " "+ptext[0:11], 36, dline)
-                disp.text(font1,"SUNMONTUEWEDTHUFRISAT"[dt2[6]*3:dt2[6]*3+3]+("  "+str(dt2[2]))[-3:],173,110)
             disp.text(font1, ptext[10:20], 124, dline)
             omn = min if omn==0 else omn # not in a time 1S
             min = 75-dt2[4]
@@ -200,6 +204,12 @@ while True:
                 ohr = hor if hor>0 else 0
                 hor = 75-(dt2[3]%12)*5 -(dt2[4])//12
                 draw_hands(ohr, hor, 75, st7789.color565(255, 255, 0))
+                if wday==0:
+                  disp.text(font1, " "+ptext[0:11], 36, dline)
+                  disp.text(wkfont,"SUNMONTUEWEDTHUFRISAT"[dt2[6]*3:dt2[6]*3+3]+ \
+                            ("  "+str(dt2[2]))[-3:],wkpos[0],wkpos[1])
+                if hor==min==75:
+                    newd = True
             while True:
                 rxData1 = uart.read(1)
                 if rxData1==doller:
