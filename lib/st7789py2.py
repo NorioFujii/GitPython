@@ -498,7 +498,7 @@ class ST7789():
           else:
             color = None
             if self.wkpos[0]>0:
-                if xp[0]<= x4 <= xp[0]+xs[0] and xp[1]<= y2 <= xp[1]+xs[1]:
+                if xp[0]<= x4 < xp[0]+xs[0] and xp[1]<= y2 < xp[1]+xs[1]:
                    if steep:
                        color = self.save_box[x4-xp[0]][(y2-xp[1])]
 #                       print('Save_box %d, %d color:%s.' % (y2, x4, color))
