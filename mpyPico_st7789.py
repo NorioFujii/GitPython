@@ -32,6 +32,9 @@ wkpos = (74, 50)
 #Watch_face = "Screenshot_clock3.bmp"
 #wkfont = font1
 #wkpos = (173,110)
+#Watch_face = "Screenshot_clock1.bmp"
+#wkfont = font1
+#wkpos = (163,110)
 
 print(uos.uname())
 spi1 = SPI(1, baudrate=62500000, polarity=1)
