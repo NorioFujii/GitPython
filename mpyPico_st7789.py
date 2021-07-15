@@ -16,6 +16,7 @@ from micropython import const
 spi1_sck   = 10
 spi1_mosi  = 11
 spi1_miso  =  8     #not use
+st7789_cs  =  9 
 st7789_res = 12
 st7789_dc  = 13
 dump = Pin(15, Pin.IN, Pin.PULL_UP)
@@ -29,19 +30,17 @@ col_base = [st7789.color565(0,0,255)] * 101
 Watch_face = "Screenshot_clock4.bmp"
 wkfont = font2
 wkpos = (74, 50)
-#Watch_face = "Screenshot_clock3.bmp"
-#wkfont = font1
-#wkpos = (173,110)
-#Watch_face = "Screenshot_clock1.bmp"
-#wkfont = font1
-#wkpos = (163,110)
+Watch_face = "Screenshot_clock1.bmp"
+wkfont = font1
+wkpos = (158,110)  # clock3:(173,110)
 
 print(uos.uname())
-spi1 = SPI(1, baudrate=62500000, polarity=1)
+spi1 = SPI(1, baudrate=62500000, polarity=1, miso=None)
 print(spi1)
 disp = st7789.ST7789(spi1, disp_width, disp_width,
              reset=Pin(st7789_res, Pin.OUT),
              dc=Pin(st7789_dc, Pin.OUT),
+             cs=Pin(st7789_cs, Pin.OUT),
              xstart=0, ystart=0, rotation=0)
 
 disp.fill(st7789.BLACK)
@@ -165,11 +164,11 @@ while True:
      rxData1 = uart.read(1)
      Backup = bytes()
      if rxData1==doller and len(rxData)>0:
-         if rxData[0:1]!=doller:
-            print(rxData)
-            rxData = doller
-            continue
-         rxData = rxData.decode('utf-8')
+         try:
+             rxData = rxData.decode('utf-8')
+         except:
+             rxData = doller
+             continue
          if dump.value()==False:
             disp.text(font1, rxData[0:10], 24, dline)
             Backup = uart.read()
