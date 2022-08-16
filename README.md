@@ -14,7 +14,7 @@ uart-rx    = 1<br>
 
 <img src="images/GPS_watch_2.jpg" width=400><br>
 
-RTC watch on Tufty2040 (new_clock.py)<br>
+Pico-RTC watch on Tufty2040 (new_clock.py)<br>
 1) Use SPI7789 + Tufty 2040 320x240 Parallel<br>
 2) RGB565 can be selected when PicoGraphics's RGB332 is unavailable
 3) Use WiFi for weather information (option)<br>
