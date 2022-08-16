@@ -1,21 +1,12 @@
 import uos, time, math, machine, rp2
 import random, ujson
-import jpegdec
 from machine import Pin, PWM, SPI
 from micropython import const
-from lib.font_read16 import writeTXT
+# from lib.font_read16 import writeTXT, text8
 osname = uos.uname()[4]
 City = "Haneda"
 SSID = ""
 button_c = Pin(9, Pin.IN, Pin.PULL_DOWN)
-_BIT7 = const(0x80)
-_BIT6 = const(0x40)
-_BIT5 = const(0x20)
-_BIT4 = const(0x10)
-_BIT3 = const(0x08)
-_BIT2 = const(0x04)
-_BIT1 = const(0x02)
-_BIT0 = const(0x01)
 disp_width = const(240)
 disp_height = const(240)
 CENTER_X = const(disp_width//2)
@@ -28,7 +19,8 @@ class passPicoG():
         self.pico = osname.find('Pico')>0
     def set_font(self,font):
         self.font = font
-        display.set_font(font)
+        if not self.pico:
+            display.set_font(font)
     def clear(self,col):
         if self.pico:
             self.dispClass.fill(col)
@@ -58,7 +50,7 @@ class passPicoG():
         if self.pico:
             self.dispClass.text(font1, strg, x, y, col)
         elif self.font=="bitmap8":
-            self._text8(font1, strg, x, y, col)
+            text8(display,font1, strg, x, y, col)
         else:
             self.dispClass.set_pen(col)
             self.dispClass.text(strg, x, y, scale=2,spacing=1 )
@@ -67,45 +59,7 @@ class passPicoG():
             return
         else:
             self.dispClass.update()
-    def _text8(self, font, text, x0, y0, color, background=0):
-        """
-        Internal method to write characters with width of 8 and
-        heights of 16.
 
-        Args:
-            font (module): font module to use
-            text (str): text to write
-            x0 (int): column to start drawing at
-            y0 (int): row to start drawing at
-            color (int): 332 encoded color to use for characters
-            background (int): 332 encoded color to use for background
-        """
-        for char in text:
-            ch = ord(char)
-            if not (font.FIRST <= ch < font.LAST
-                    and x0+font.WIDTH <= disp_width
-                    and y0+font.HEIGHT <= disp_height):
-                continue
-            idx = (ch-font.FIRST)*font.HEIGHT
-            for y in range(font.HEIGHT):
-                    display.set_pen(color if font.FONT[idx] & _BIT7 else background)
-                    display.pixel(x0+0,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT6 else background)
-                    display.pixel(x0+1,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT5 else background)
-                    display.pixel(x0+2,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT4 else background)
-                    display.pixel(x0+3,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT3 else background)
-                    display.pixel(x0+4,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT2 else background)
-                    display.pixel(x0+5,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT1 else background)
-                    display.pixel(x0+6,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT0 else background)
-                    display.pixel(x0+7,y0+y)
-                    idx += 1
-            x0 += font.WIDTH
 def writeText(text,x,y,color=None):
     color = color if color else WHITE
     writeTXT(text,x,y,color=color,disp=display)
@@ -124,7 +78,7 @@ if osname.find('Pi Pico')>0:
     st7789_cs  =  6 
     st7789_res = 12
     st7789_dc  = 13
-    if button_c.value():
+    if not button_c.value():
       from picographics import PicoGraphics,DISPLAY_LCD_240X240,PEN_RGB332
       from pimoroni import Button
       from pimoroni_bus import SPIBus
@@ -132,11 +86,15 @@ if osname.find('Pi Pico')>0:
       display = PicoGraphics(display=DISPLAY_LCD_240X240, bus=spibus, pen_type=PEN_RGB332)
       osname = "Pi Tufty fake"
       disp = passPicoG(display)
+      import jpegdec
+      from lib.font_read16 import text8
 elif osname.find('Tufty 2040')>0:
     from picographics import PicoGraphics,DISPLAY_TUFTY_2040,PEN_RGB332 
     from pimoroni import Button
     display = PicoGraphics(display=DISPLAY_TUFTY_2040)
     disp = passPicoG(display)
+    import jpegdec
+    from lib.font_read16 import writeTXT, text8
 else:
     uos.exit()
 Watch_face = "Screenshot_clock1.bmp"
@@ -144,10 +102,10 @@ Watch_faceJ = "Screenshot_clock1.jpg"
 Watch_faceB = "clock1.332" if osname.find('Tufty')>0 \
          else "clock1.565"
 wkpos = (158,111)  # clock3:(173,110)
-            
+
+from lib import read_8x16 as font1
 if osname.find('Pico')>0:
     from lib import st7789py2 as st7789
-    from lib import read_8x16 as font1
     WHITE  = st7789.color565((255,255,255))
     BLACK  = st7789.color565((0, 0, 0))
     ORANGE = st7789.color565((200, 138, 30))
@@ -201,7 +159,6 @@ if osname.find('Pico')>0 or osname.find('fake')>0:
     if osname.find('fake')>0:
         WHITE = display.create_pen(220, 220, 255)
 else:
-    from lib import read_8x16 as font1
     BACKL = 0.5
     display.set_backlight(BACKL) 
 
@@ -427,6 +384,8 @@ def bitmap_thread():
        j.open_file("/img/"+Watch_faceJ)
        j.decode(0, 0, jpegdec.JPEG_SCALE_FULL)
        display.partial_update(0,0,239,239)
+       if osname.find('fake')>0:
+           return
        writeText("<RTCによる時計>", 240, 6)
        writeText("ボタンUP", 240, 24)
        writeText("　＋（ABCと同時）", 240, 38)
@@ -499,7 +458,8 @@ def draw_clock(second):
                     dispST.write(None, b16.read(80*32))
 
             disp.text(str(jdtP['temp'])+chr(0xb0)+"C "+str(jdtP['humidity'])+"% in "+City+"      ",36,dline+16,toColor)
-            writeText("気圧："+str(jdtP['pressure'])+"hp",240,dline+16,color=toColor)
+            if osname.find('Tufty 2040')>0:
+                writeText("気圧："+str(jdtP['pressure'])+"hp",240,dline+16,color=toColor)
     if 68<old<70 or old==hor or wday==0 or (58<old<60 and 57<hor<62):
         ohr = hor if hor>0 else 0
         hor = 75-(hour%12)*5 - minute//12
