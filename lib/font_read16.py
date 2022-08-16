@@ -1,6 +1,16 @@
-import os, sys, binascii
+import uos, sys, binascii
 from micropython import const
 TEXT_NORMAL = const(1)
+_BIT7 = const(0x80)
+_BIT6 = const(0x40)
+_BIT5 = const(0x20)
+_BIT4 = const(0x10)
+_BIT3 = const(0x08)
+_BIT2 = const(0x04)
+_BIT1 = const(0x02)
+_BIT0 = const(0x01)
+disp_width = const(240)
+disp_height = const(240)
 yoko = 94
 tate = 12
 fontL = 84
@@ -10,7 +20,8 @@ kanjiL = ""
 last_seek = -1
 last_eye = 0
 # BMPデータを取り込む
-fbm = open("/fonts/k8x12L_jisx0208_r.bmp", "rb")
+if uos.uname()[4].find('Tufty 2040')>0:
+    fbm = open("/fonts/k8x12L_jisx0208_r.bmp", "rb")
 # headerとpadding zero を取り除いたBitmapファイル
 
 # 文字列の入力と変換
@@ -96,4 +107,43 @@ def writeTXT(strg, x, y, color=None, disp=None, rot=None):
             dispUTF(strg1[i:i+2], x,y,color , disp=disp, rot=rot)
             skip = 1
         x += TEXT_NORMAL*8
-       
+
+def text8(display, font, text, x0, y0, color, background=0):
+        """
+        Internal method to write characters with width of 8 and
+        heights of 16.
+
+        Args:
+            font (module): font module to use
+            text (str): text to write
+            x0 (int): column to start drawing at
+            y0 (int): row to start drawing at
+            color (int): 332 encoded color to use for characters
+            background (int): 332 encoded color to use for background
+        """
+        for char in text:
+            ch = ord(char)
+            if not (font.FIRST <= ch < font.LAST
+                    and x0+font.WIDTH <= disp_width
+                    and y0+font.HEIGHT <= disp_height):
+                continue
+            idx = (ch-font.FIRST)*font.HEIGHT
+            for y in range(font.HEIGHT):
+                    display.set_pen(color if font.FONT[idx] & _BIT7 else background)
+                    display.pixel(x0+0,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT6 else background)
+                    display.pixel(x0+1,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT5 else background)
+                    display.pixel(x0+2,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT4 else background)
+                    display.pixel(x0+3,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT3 else background)
+                    display.pixel(x0+4,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT2 else background)
+                    display.pixel(x0+5,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT1 else background)
+                    display.pixel(x0+6,y0+y)
+                    display.set_pen(color if font.FONT[idx] & _BIT0 else background)
+                    display.pixel(x0+7,y0+y)
+                    idx += 1
+            x0 += font.WIDTH
