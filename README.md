@@ -16,5 +16,6 @@ uart-rx    = 1<br>
 
 RTC watch on Tufty2040 (new_clock.py)<br>
 1) Use SPI7789 + Tufty 2040 320x240 Parallel<br>
-2) Use WiFi for weather information (option)<br><br>
+2) Use WiFi for weather information (option)<br>
+3) 2 AP auto roaming on WiFi<br><br>
 <img src="images/TuftyWatch.jpg" width=400><br>
