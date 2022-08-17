@@ -1,4 +1,4 @@
-import uos, sys, binascii
+import os, sys, binascii
 from micropython import const
 TEXT_NORMAL = const(1)
 _BIT7 = const(0x80)
@@ -20,12 +20,11 @@ kanjiL = ""
 last_seek = -1
 last_eye = 0
 # BMPデータを取り込む
-if uos.uname()[4].find('Tufty 2040')>0:
-    fbm = open("/fonts/k8x12L_jisx0208_r.bmp", "rb")
+fbm = open("/fonts/k8x12L_jisx0208_r.bmp", "rb")
 # headerとpadding zero を取り除いたBitmapファイル
 
 # 文字列の入力と変換
-def dispUTF(strg, x, y, color, disp=None, rot=None):
+def dispUTF(strg, x0, y0, color, disp=None, rot=None):
     global img, kanjiL, last_seek, last_eye
     strg1 = bytes(strg,'utf-8') if type(strg) is str else strg
     strg2 = ""
@@ -65,7 +64,7 @@ def dispUTF(strg, x, y, color, disp=None, rot=None):
                 print('Kanji Not found',key,'from',strg)
                 return
             last_eye = i + k
-    print(strg1.decode(), last_eye, j, k, key)
+#    print(strg1.decode(), last_eye, j, k, key)
     new_seek = tate*(fontL-last_eye-1)*yoko
     if last_seek != new_seek:
         last_seek = new_seek
@@ -77,15 +76,28 @@ def dispUTF(strg, x, y, color, disp=None, rot=None):
 #    tate  = 12
     for q in range(tate) :
         c = img[q][j]
-        for r in range(0, fontw) :
-            dots += ("●●" if (c & (0x80 >> r))==0 else "　")
-            if disp:
-                pos = r * TEXT_NORMAL
-                disp.set_pen(color if (c & (0x80 >> r))==0 else 0)
-                disp.pixel_span(x+pos,y+q,TEXT_NORMAL)
-        dots += "\n"
-    if not disp:
-        print(dots)
+        yy = y0 + q
+#        for r in range(0, fontw) :
+#            dots += ("●●" if (c & (0x80 >> r))==0 else "　")
+        if disp:
+                disp.set_pen(0 if c & _BIT7 else color)
+                disp.pixel(x0+0,yy)
+                disp.set_pen(0 if c & _BIT6 else color)
+                disp.pixel(x0+1,yy)
+                disp.set_pen(0 if c & _BIT5 else color)
+                disp.pixel(x0+2,yy)
+                disp.set_pen(0 if c & _BIT4 else color)
+                disp.pixel(x0+3,yy)
+                disp.set_pen(0 if c & _BIT3 else color)
+                disp.pixel(x0+4,yy)
+                disp.set_pen(0 if c & _BIT2 else color)
+                disp.pixel(x0+5,yy)
+                disp.set_pen(0 if c & _BIT1 else color)
+                disp.pixel(x0+6,yy)
+                disp.set_pen(0 if c & _BIT0 else color)
+                disp.pixel(x0+7,yy)
+#                disp.set_pen(color if (c & (0x80 >> r))==0 else 0)
+#                disp.pixel_span(x+r,yy,TEXT_NORMAL)
 
 def writeTXT(strg, x, y, color=None, disp=None, rot=None):
     strg1 = strg.encode() if len("日本語")==3 else bytes(strg, 'utf-8')
@@ -108,7 +120,7 @@ def writeTXT(strg, x, y, color=None, disp=None, rot=None):
             skip = 1
         x += TEXT_NORMAL*8
 
-def text8(display, font, text, x0, y0, color, background=0):
+def text8(disp, font, text, x0, y0, color, background=0):
         """
         Internal method to write characters with width of 8 and
         heights of 16.
@@ -129,21 +141,23 @@ def text8(display, font, text, x0, y0, color, background=0):
                 continue
             idx = (ch-font.FIRST)*font.HEIGHT
             for y in range(font.HEIGHT):
-                    display.set_pen(color if font.FONT[idx] & _BIT7 else background)
-                    display.pixel(x0+0,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT6 else background)
-                    display.pixel(x0+1,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT5 else background)
-                    display.pixel(x0+2,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT4 else background)
-                    display.pixel(x0+3,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT3 else background)
-                    display.pixel(x0+4,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT2 else background)
-                    display.pixel(x0+5,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT1 else background)
-                    display.pixel(x0+6,y0+y)
-                    display.set_pen(color if font.FONT[idx] & _BIT0 else background)
-                    display.pixel(x0+7,y0+y)
-                    idx += 1
+                c = font.FONT[idx]
+                yy = y0 + y
+                disp.set_pen(color if c & _BIT7 else background)
+                disp.pixel(x0+0,yy)
+                disp.set_pen(color if c & _BIT6 else background)
+                disp.pixel(x0+1,yy)
+                disp.set_pen(color if c & _BIT5 else background)
+                disp.pixel(x0+2,yy)
+                disp.set_pen(color if c & _BIT4 else background)
+                disp.pixel(x0+3,yy)
+                disp.set_pen(color if c & _BIT3 else background)
+                disp.pixel(x0+4,yy)
+                disp.set_pen(color if c & _BIT2 else background)
+                disp.pixel(x0+5,yy)
+                disp.set_pen(color if c & _BIT1 else background)
+                disp.pixel(x0+6,yy)
+                disp.set_pen(color if c & _BIT0 else background)
+                disp.pixel(x0+7,yy)
+                idx += 1
             x0 += font.WIDTH
