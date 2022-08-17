@@ -78,16 +78,27 @@ if osname.find('Pi Pico')>0:
     st7789_cs  =  6 
     st7789_res = 12
     st7789_dc  = 13
-    if not button_c.value():
-      from picographics import PicoGraphics,DISPLAY_LCD_240X240,PEN_RGB332
-      from pimoroni import Button
-      from pimoroni_bus import SPIBus
-      spibus = SPIBus(cs=6, dc=13, sck=10, mosi=11) # 17,16,18,19
-      display = PicoGraphics(display=DISPLAY_LCD_240X240, bus=spibus, pen_type=PEN_RGB332)
-      osname = "Pi Tufty fake"
-      disp = passPicoG(display)
-      import jpegdec
-      from lib.font_read16 import text8
+    """
+        Hard reset display.
+    """
+    Pin(st7789_cs,Pin.OUT).off()
+    Pin(st7789_res,Pin.OUT).on()
+    time.sleep_ms(50)
+    Pin(st7789_res,Pin.OUT).off()
+    time.sleep_ms(50)
+    Pin(st7789_res,Pin.OUT).on()
+    time.sleep_ms(150)
+    Pin(st7789_cs,Pin.OUT).on()
+    if not button_c.value(): # ST7789 mode by C-button
+        from picographics import PicoGraphics,DISPLAY_LCD_240X240,PEN_RGB332
+        from pimoroni import Button
+        from pimoroni_bus import SPIBus
+        spibus = SPIBus(cs=6, dc=13, sck=10, mosi=11) # 17,16,18,19
+        display = PicoGraphics(display=DISPLAY_LCD_240X240, bus=spibus, pen_type=PEN_RGB332)
+        osname = "Pi Tufty fake"
+        disp = passPicoG(display)
+        import jpegdec
+        from lib.font_read16 import text8
 elif osname.find('Tufty 2040')>0:
     from picographics import PicoGraphics,DISPLAY_TUFTY_2040,PEN_RGB332 
     from pimoroni import Button
@@ -411,7 +422,7 @@ def draw_clock(second):
     old = sec if sec>0 else 0
     wday = 0 if newd else 8
     newd = False
-    text1 = "{:04d}-{:02d}-{:02d} {:02d}.{:02d}.{:02d} "
+    text1 = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d} "
     text2 = " N:{}°{}’ E:{}°{}’"
     text3 = "  {}°C {}%"
     ptext = text1.format(year,month,day,hour,minute,second)
