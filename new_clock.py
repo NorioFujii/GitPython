@@ -482,7 +482,7 @@ def draw_clock(second):
     disp.update()
 
 def excgWiFi(ap_id):
-    global wlan
+    global wlan,SSID,apid
     if not wlan.isconnected():
         ap_id = 2 if ap_id==1 else 1
         wlan,SSID,apid = setWiFi(City,ap_id)
