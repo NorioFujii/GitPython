@@ -21,8 +21,8 @@ Pico-RTC watch on Tufty2040 (new_clock.py)<br>
 4) 2 Access Points auto roaming on WiFi<br>
 5) Dial face design is changeable<br><br>
 <img src="images/TuftyWatch.jpg" width=400><br>
-In case of Pico W, at least button-c is provided.<br>
-- Back light control step by step<br>
-- Save and restore last time stamp<br>
-- Show current SSID connected<br>
-- Change dial face when backlight=0 <br>
+In case of Pico W, at least button-c may be provided.<br>
+ - Back light control step by step<br>
+ - Save and restore last time stamp<br>
+ - Show current SSID connected<br>
+ - Change dial face when backlight=0 <br>
