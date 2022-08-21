@@ -18,5 +18,11 @@ Pico-RTC watch on Tufty2040 (new_clock.py)<br>
 1) Use SPI7789 + Tufty 2040 320x240 Parallel<br>
 2) RGB565 can be selected when PicoGraphics's RGB332 is unavailable
 3) Use WiFi for weather information (option)<br>
-4) 2 Access Points auto roaming on WiFi<br><br>
+4) 2 Access Points auto roaming on WiFi<br>
+5) Dial face design is changeable<br><br>
 <img src="images/TuftyWatch.jpg" width=400><br>
+In case of Pico W, at least button-c is provided.<br>
+- Back light control step by step<br>
+- Save and restore last time stamp<br>
+- Show current SSID connected<br>
+- Change dial face when backlight=0 <br>
