@@ -1,11 +1,12 @@
 import uos, time, math, machine, rp2
-import random, ujson
+import gc, random, ujson
 from machine import Pin, PWM, SPI
 from micropython import const
 # from lib.font_read16 import writeTXT, text8
 osname = uos.uname()[4]
 City = "Haneda"
 SSID = ""
+dialID = "clock1"
 button_c = Pin(9, Pin.IN, Pin.PULL_DOWN)
 disp_width = const(240)
 disp_height = const(240)
@@ -70,7 +71,7 @@ if osname.find('Pi Pico')>0:
     if osname.find('Pico W')>0:
         import network, socket
         from lib.set_WiFi import setWiFi
-        wlan,SSID,apid = setWiFi(City,1)
+        wlan,SSID,apid = setWiFi(City,2)
 #SPI(1) default pins
     spi1_sck   = 10
     spi1_mosi  = 11
@@ -108,10 +109,6 @@ elif osname.find('Tufty 2040')>0:
     from lib.font_read16 import writeTXT, text8
 else:
     uos.exit()
-Watch_face = "Screenshot_clock1.bmp"
-Watch_faceJ = "Screenshot_clock1.jpg"
-Watch_faceB = "clock1.332" if osname.find('Tufty')>0 \
-         else "clock1.565"
 wkpos = (158,111)  # clock3:(173,110)
 
 from lib import read_8x16 as font1
@@ -179,7 +176,7 @@ Cur = 4  # minute
 # Button handling function
 def button(pin):
     global set_clock, year, month, day, hour, minute, second, wd
-    global newd, sec, min, hor, BACKL, blankSW, Cur, j
+    global newd, sec, min, hor, BACKL, Cur, j, dialID, Watch_faceB
     if set_clock:
         return
     set_clock = True
@@ -220,8 +217,17 @@ def button(pin):
             with open("stocktime.txt","w", encoding="utf-8") as stamp:
                 stamp.write(ptext)
             if osname.find('Pico')>0 or osname.find('fake')>0:
-                blankSW ^= 1
-                BACKL = 65535 if BACKL<2000 else BACKL-2000  # 
+                if BACKL<2000:
+                    dialID = "clock2" if dialID=="clock1" else "clock1"
+                    bitmap_thread()
+                    min = hor = 75
+                    newd = True
+                    draw_clock(second)
+                    BACKL = 65535
+                else:
+                    disp.text("Weather from "+SSID+"      ",36,dline+16,WHITE)
+                    disp.update()
+                    BACKL -= 2000  # 
                 intnit = int(math.sin((BACKL/65536)*3.14)*65535)
                 STblank.duty_u16(intnit)
     if osname.find('Pico')>0 or osname.find('fake')>0:
@@ -237,8 +243,15 @@ def button(pin):
             BACKL1 = BACKL + adjust/20000
             BACKL=BACKL1 if 0<=BACKL1<=1.0 else BACKL
         else:
-            blankSW ^= 1
-            BACKL = 0.5 - 0.5*blankSW #20000 - 20000*blankSW
+            dialID = "clock2" if dialID=="clock1" else "clock1"
+            Watch_faceB = dialID+ \
+                  (".332" if osname.find('Tufty')>0 else ".565")
+            j.open_file("/img/Screenshot_"+dialID+".jpg")
+            j.decode(0, 0, jpegdec.JPEG_SCALE_FULL)
+            display.partial_update(0,0,239,239)
+            min = hor = 75
+            newd = True
+            draw_clock(second)
         display.set_backlight(BACKL) 
 
     if pin.value() and pin==button_a:
@@ -363,12 +376,19 @@ def week(yy, feb): # 124:MON start in a week
     days = (-2495+yy[0]+yy[0]//4+int("*033614625035"[yy[1]])+yy[2])
     wday = (days-1)%7 if feb==29 and yy[1]<3 else days%7
     return wday
-
+Watch_faceB = ""
 def bitmap_thread():
+   global dialID, Watch_faceB
+   Watch_face  = "/img/Screenshot_"+dialID+".bmp"
+   Watch_faceJ = "/img/Screenshot_"+dialID+".jpg"
+   Watch_faceB = dialID+ \
+     (".332" if osname.find('Tufty')>0 else ".565")
    vw = 2 if osname.find('Pico')>0 else 1
    if Watch_faceB not in uos.listdir("/img"): 
+      if not uos.path.isfile(Watch_face):
+          return False
       with open("/img/"+Watch_faceB,"wb") as b16:
-        with open("/img/"+Watch_face,"rb") as bm:
+        with open(Watch_face,"rb") as bm:
            for l in range(1, disp_height-1):
               col_base = bytes()
               for w in range(disp_width):
@@ -390,13 +410,13 @@ def bitmap_thread():
             dispST.write(None, b16.read(480*80))
             dispST.set_window(0,160,disp_width-1,239)
             dispST.write(None, b16.read(480*80))
-   else:        
+   if vw==1 and Watch_faceB in uos.listdir("/img"):        
        disp.clear(BLACK)
-       j.open_file("/img/"+Watch_faceJ)
+       j.open_file(Watch_faceJ)
        j.decode(0, 0, jpegdec.JPEG_SCALE_FULL)
        display.partial_update(0,0,239,239)
        if osname.find('fake')>0:
-           return
+           return True
        writeText("<RTCによる時計>", 240, 6)
        writeText("ボタンUP", 240, 24)
        writeText("　＋（ABCと同時）", 240, 38)
@@ -408,8 +428,11 @@ def bitmap_thread():
        writeText(" バックライト明暗", 240, 122)
        writeText("ボタンC", 240, 136)
        writeText(" 時刻調整・2前後", 240, 150)
-       writeText("ボタンC単独", 240, 166)
-       writeText(" 時刻保存・復元", 240, 180)
+       writeText("ボタンB単独", 240, 166)
+       writeText("　 背景切り替え", 240, 180)
+       writeText("ボタンC単独", 240, 194)
+       writeText("　 時刻保存・復元", 240, 208)
+   return True
 
 dline = 208  # 日付時刻表示行の位置            
 sec = min = hor = 75
@@ -430,47 +453,52 @@ def draw_clock(second):
     sec = 75-second
     disp.rectangle(40, dline, 180, 16, BLACK) 
     disp.text(ptext[0:20], 40, dline, WHITE) # 124
-    if 56<sec<64 and not 57<min<63 or wday==0 or oldText!=ptext[8:10]:
+    if 56<sec<64 and not 58<min<62 or wday==0 or oldText!=ptext[8:10]:
         disp.rectangle(wkpos[0],wkpos[1], 49, 16, BLACK) 
         disp.text("MONTUEWEDTHUFRISATSUN"[wd*3:wd*3+3],wkpos[0],wkpos[1],WHITE)
         disp.text(("  "+str(day))[-3:],wkpos[0]+26,wkpos[1],WHITE)
     omn = min if omn==0 else omn # not in a time 1S
     min = 75-minute
     draw_hands(old, sec, 100, disp.create_pen(255, 0, 0))
-    if 71<old<73 or old==omn or wday==0 or (58<old<60 and 57<omn<62): 
+    if old==73 or old==omn or wday==0 or (58<old<60 and 57<omn<62): 
         draw_hands(omn, min, 95, WHITE)
         omn = 0
-        if dline==208 and (wday==0 or min%15==0 and old==72):
-            if wlan:
+    if dline==208 and wlan:
+        if (wday==0 or min%15==0):
+           if old==73:
               s = socket.socket()
               try:
                 s.connect(addr)
                 s.send(bytes('GET /%s HTTP/1.1\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
-                recv = s.recv(1024).decode()
-                if len(recv)>10:
-                    print (recv)
-                    jdtP = ujson.loads(recv[recv.find("{"):recv.find("}")+1])
+                disp.text("Weather from "+SSID+"      ",36,dline+16,WHITE)
+                disp.update()
               except:
                 if not excgWiFi(apid):
+                    disp.text("Internet disconnected      ",36,dline+16,YELLOW)
                     wlan = False
-                    
+              return      
+           if old==71:
+              recv = s.recv(1024).decode()
+              if len(recv)>10:
+                    print (recv)
+                    jdtP = ujson.loads(recv[recv.find("{"):recv.find("}")+1])
               s.close()
-            disp.rectangle(36,dline+16,180, 16, BLACK) 
-            mainL = jdtP['weather'].lower()
-            colorJson = {'clear':ORANGE,'clouds':LITEYL,'rain':BLUE,'snow':WHITE,'mist':CYAN,'thunderstorm':YELLOW}
-            toColor = colorJson[mainL] 
-            if j:
-                j.open_file("/img/"+mainL+".jpg")
-                j.decode(0, 208, jpegdec.JPEG_SCALE_FULL)
-                display.partial_update(0,208,39,239)
-            else:
-                with open("/img/"+mainL+".565","rb") as b16:
+           disp.rectangle(36,dline+16,180, 16, BLACK) 
+           mainL = jdtP['weather'].lower()
+           colorJson = {'clear':ORANGE,'clouds':LITEYL,'rain':BLUE,'snow':WHITE,'mist':CYAN,'thunderstorm':YELLOW}
+           toColor = colorJson[mainL] 
+           if j:
+               j.open_file("/img/"+mainL+".jpg")
+               j.decode(0, 208, jpegdec.JPEG_SCALE_FULL)
+               display.partial_update(0,208,39,239)
+           else:
+               with open("/img/"+mainL+".565","rb") as b16:
                     dispST.set_window(0, 208, 39, 239)
                     dispST.write(None, b16.read(80*32))
 
-            disp.text(str(jdtP['temp'])+chr(0xb0)+"C "+str(jdtP['humidity'])+"% in "+City+"      ",36,dline+16,toColor)
-            if osname.find('Tufty 2040')>0:
-                writeText("気圧："+str(jdtP['pressure'])+"hp",240,dline+16,color=toColor)
+           disp.text(str(jdtP['temp'])+chr(0xb0)+"C "+str(jdtP['humidity'])+"% in "+City+"      ",36,dline+16,toColor)
+           if osname.find('Tufty 2040')>0:
+               writeText("気圧："+str(jdtP['pressure'])+"hp",240,dline+16,color=toColor)
     if 68<old<70 or old==hor or wday==0 or (58<old<60 and 57<hor<62):
         ohr = hor if hor>0 else 0
         hor = 75-(hour%12)*5 - minute//12
@@ -489,7 +517,7 @@ def excgWiFi(ap_id):
         disp.rectangle(104, dline, 160, 24,BLACK) 
         disp.text(SSID+"     ",104,dline,WHITE)
         disp.update()
-        time.sleep(10)
+        time.sleep(8)
     return wlan.isconnected()
 
 if not wlan:
@@ -503,8 +531,7 @@ elif not wlan.isconnected() and wlan.status() >= 0:
         wlan = False
         dline = 212
 
-if Watch_face in uos.listdir("/img"):
-    bitmap_thread()
+if bitmap_thread():
     disp.rectangle(20, dline, 200, 24, BLACK) 
 else:    
     CENTER_Y -= 15
@@ -521,11 +548,20 @@ if wlan:
     print(SSID,end=" ")
     print(wlan.ifconfig())
     _, _, host, path = ("https://mori1-hakua.tokyo/cgi-bin/test/getTenki.cgi?"+City).split('/', 3)
-    addr = socket.getaddrinfo(host, 80)[0][-1]
-    _, _, host2 = ("http://date.jsontest.com").split('/', 3)
-    addr2 = socket.getaddrinfo(host2, 80)[0][-1]
-    disp.text("                          ",20,dline,WHITE)
-    
+    try:
+        addr = socket.getaddrinfo(host, 80)[0][-1]
+        _, _, host2 = ("http://date.jsontest.com").split('/', 2)
+        addr2 = socket.getaddrinfo(host2, 80)[0][-1]
+        disp.text("                          ",20,dline,WHITE)
+    except:
+        if not excgWiFi(apid):
+            disp.text("Internet disconnected    ",36,dline+16,YELLOW)
+            wlan = False
+        else:
+            addr = socket.getaddrinfo(host, 80)[0][-1]
+            _, _, host2 = ("http://date.jsontest.com").split('/', 2)
+            addr2 = socket.getaddrinfo(host2, 80)[0][-1]
+
 year, month, day, wd, hour, minute, second, _ = rtc.datetime()
 last_second = second
 oldText = " s"
