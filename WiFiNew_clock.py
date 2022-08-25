@@ -68,8 +68,8 @@ def writeText(text,x,y,color=None):
     display.update()
 
 wlan = False
-PiGO_width=135 if osname.find('GO') else disp_width
-RotPiGO = 1    if osname.find('GO') else 0
+PiGO_width=135 if osname.find('GO')>0 else disp_width
+RotPiGO = 1    if osname.find('GO')>0 else 0
 if osname.find('Pi Pico')>0:
     if osname.find('Pico W')>0:
         import network, socket
