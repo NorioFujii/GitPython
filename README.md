@@ -27,3 +27,5 @@ In case of Pico W, at least button-c(GPIO-9) may be provided.<br>
  - Save and restore last time stamp<br>
  - Show current SSID connected<br>
  - Change dial face when backlight=0 <br>
+<br>LILYGO running...<br>
+https://www.facebook.com/100001708228622/videos/pcb.474901580820581/776638766871782
