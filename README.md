@@ -28,4 +28,11 @@ In case of Pico W, at least button-c(GPIO-7) may be provided.<br>
  - Show current SSID connected<br>
  - Change dial face when backlight=0 <br>
 <br>LILYGO running...<br>
-https://www.facebook.com/100001708228622/videos/pcb.474901580820581/776638766871782
+https://www.facebook.com/100001708228622/videos/pcb.474901580820581/776638766871782<br>
+LILYGO #SPI(0) fixed pins<br>
+spi1_sck  = 2<br>
+spi1_mosi = 3<br>
+st7789_bl = 4<br>
+st7789_cs = 5<br>
+st7789_res= 0<br>
+st7789_dc = 1<br>
