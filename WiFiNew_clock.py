@@ -103,7 +103,7 @@ if osname.find('Pi Pico')>0:
     Pin(st7789_res,Pin.OUT).on()
     time.sleep_ms(150)
     Pin(st7789_cs,Pin.OUT).on()
-    if osname.find('Pico') and Pin(7,Pin.IN,Pin.PULL_UP).value(): # ST7789 mode by C-button
+    if osname.find('Pico')>0 and Pin(7,Pin.IN,Pin.PULL_UP).value(): # ST7789 mode by C-button
         from pimoroni import Button
         from pimoroni_bus import SPIBus
         if osname.find('GO')>0:
