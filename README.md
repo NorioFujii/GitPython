@@ -22,7 +22,7 @@ Pico-RTC watch on Tufty2040 (new_clock.py)<br>
 5) Dial face design is changeable<br><br>
 <img src="images/TuftyWatch.jpg" width=400><br>
 
-In case of Pico W, at least button-c(GPIO-9) may be provided.<br>
+In case of Pico W, at least button-c(GPIO-7) may be provided.<br>
  - Back light control step by step<br>
  - Save and restore last time stamp<br>
  - Show current SSID connected<br>
