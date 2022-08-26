@@ -76,19 +76,19 @@ if osname.find('Pi Pico')>0:
         from lib.set_WiFi import setWiFi
         wlan,SSID,apid = setWiFi(City,1)
 #SPI(1) default pins
-        spi1_sck   = Pin(10,Pin.OUT)
-        spi1_mosi  = Pin(11,Pin.OUT)
-        spi1_miso  =  8     #not use
-        st7789_cs  =  9 
-        st7789_res = 12
-        st7789_dc  = 13
-    else:
+    if osname.find('GO')>0:
         spi1_sck   = Pin(2,Pin.OUT)
         spi1_mosi  = Pin(3,Pin.OUT)
-        spi1_miso  =  8     #not use
         st7789_res = 0
         st7789_dc  = 1
         st7789_cs  = 5
+    else:
+        spi1_sck   = Pin(10,Pin.OUT)
+        spi1_mosi  = Pin(11,Pin.OUT)
+        st7789_cs  =  9 
+        st7789_res = 12
+        st7789_dc  = 13
+    spi1_miso  = 8     #not use
     st7789vdd = 22
     backlight  = 4
     """
