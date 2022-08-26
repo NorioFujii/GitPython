@@ -106,7 +106,7 @@ if osname.find('Pi Pico')>0:
     if osname.find('Pico') and Pin(7,Pin.IN,Pin.PULL_UP).value(): # ST7789 mode by C-button
         from pimoroni import Button
         from pimoroni_bus import SPIBus
-        if osname.find('GO'):
+        if osname.find('GO')>0:
           from picographics import PicoGraphics,DISPLAY_PICO_DISPLAY,PEN_RGB332
           spibus = SPIBus(cs=5, dc=1, sck=2, mosi=3) # 17,16,18,19
           display = PicoGraphics(display=DISPLAY_PICO_DISPLAY, bus=spibus, pen_type=PEN_RGB332, rotate=1)
